@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="blue_primary">#3c5fc3</color>
+    <color name="blue_primary_variant">#1565C0</color>
+    <color name="blue_secondary">#03A9F4</color>
+    <color name="blue_secondary_variant">#0288D1</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="chatBackground">#F4F2F2</color>
+    <color name="Background">#ffff</color>
+    <color name="shimmerColor">#BDBDBD</color>
+</resources>

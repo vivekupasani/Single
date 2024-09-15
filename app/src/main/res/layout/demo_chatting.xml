@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+        <androidx.cardview.widget.CardView
+            android:layout_width="250dp"
+            android:layout_height="50dp"
+            android:layout_gravity="start"
+            android:layout_margin="8dp"
+            app:cardElevation="5dp"
+            app:cardCornerRadius="18dp"
+            android:clipChildren="true"
+            android:clipToPadding="true">
+
+            <View
+                android:layout_width="match_parent"
+                android:background="@color/shimmer_color"
+                android:layout_height="match_parent"/>
+
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="250dp"
+            android:layout_height="50dp"
+            android:layout_gravity="end"
+            android:layout_margin="8dp"
+            app:cardElevation="5dp"
+            app:cardCornerRadius="18dp"
+            android:clipChildren="true"
+            android:clipToPadding="true">
+
+            <View
+                android:layout_width="match_parent"
+                android:background="@color/shimmer_color"
+                android:layout_height="match_parent"/>
+
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="180dp"
+            android:layout_height="50dp"
+            android:layout_gravity="start"
+            android:layout_margin="8dp"
+            app:cardElevation="5dp"
+            app:cardCornerRadius="18dp"
+            android:clipChildren="true"
+            android:clipToPadding="true">
+
+            <View
+                android:layout_width="match_parent"
+                android:background="@color/shimmer_color"
+                android:layout_height="match_parent"/>
+
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="250dp"
+            android:layout_height="80dp"
+            android:layout_gravity="end"
+            android:layout_margin="8dp"
+            app:cardElevation="5dp"
+            app:cardCornerRadius="18dp"
+            android:clipChildren="true"
+            android:clipToPadding="true">
+
+            <View
+                android:layout_width="match_parent"
+                android:background="@color/shimmer_color"
+                android:layout_height="match_parent"/>
+
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="250dp"
+            android:layout_height="50dp"
+            android:layout_gravity="start"
+            android:layout_margin="8dp"
+            app:cardElevation="5dp"
+            app:cardCornerRadius="18dp"
+            android:clipChildren="true"
+            android:clipToPadding="true">
+
+            <View
+                android:layout_width="match_parent"
+                android:background="@color/shimmer_color"
+                android:layout_height="match_parent"/>
+
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="250dp"
+            android:layout_height="50dp"
+            android:layout_gravity="end"
+            android:layout_margin="8dp"
+            app:cardElevation="5dp"
+            app:cardCornerRadius="18dp"
+            android:clipChildren="true"
+            android:clipToPadding="true">
+
+            <View
+                android:layout_width="match_parent"
+                android:background="@color/shimmer_color"
+                android:layout_height="match_parent"/>
+
+        </androidx.cardview.widget.CardView>
+    </LinearLayout>
+
+
+</FrameLayout>

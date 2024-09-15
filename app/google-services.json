@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "616044693358",
+    "project_id": "single-5664b",
+    "storage_bucket": "single-5664b.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:616044693358:android:178529263923768d64e37f",
+        "android_client_info": {
+          "package_name": "com.vivekupasani.single"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCFaoTLK6EJQUKqJiB3xe2jrF07IFGTtFk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

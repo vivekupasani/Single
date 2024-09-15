@@ -1,0 +1,59 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme for light mode. -->
+    <style name="Base.Theme.Single.Light" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/blue_primary</item>
+        <item name="colorPrimaryVariant">@color/blue_primary_variant</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/blue_secondary</item>
+        <item name="colorSecondaryVariant">@color/blue_secondary_variant</item>
+        <item name="colorOnSecondary">@color/white</item>
+
+        <!-- Bottom Navigation View style for Light Theme -->
+        <item name="bottomNavigationStyle">@style/Widget.BottomNavigationView.Light</item>
+    </style>
+
+    <!-- Base application theme for dark mode. -->
+    <style name="Base.Theme.Single.Dark" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/blue_primary</item>
+        <item name="colorPrimaryVariant">@color/blue_primary_variant</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/blue_secondary</item>
+        <item name="colorSecondaryVariant">@color/blue_secondary_variant</item>
+        <item name="colorOnSecondary">@color/white</item>
+
+        <!-- Bottom Navigation View style for Dark Theme -->
+        <item name="bottomNavigationStyle">@style/Widget.BottomNavigationView.Dark</item>
+    </style>
+
+    <!-- Application theme that switches between light and dark based on system setting. -->
+    <style name="Theme.Single" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/blue_primary</item>
+        <item name="colorPrimaryVariant">@color/blue_primary_variant</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/blue_secondary</item>
+        <item name="colorSecondaryVariant">@color/blue_secondary_variant</item>
+        <item name="colorOnSecondary">@color/white</item>
+
+        <!-- Bottom Navigation View style for DayNight Theme -->
+        <item name="bottomNavigationStyle">@style/Widget.BottomNavigationView.DayNight</item>
+    </style>
+
+    <!-- Bottom Navigation View Styles -->
+    <style name="Widget.BottomNavigationView.Light" parent="Widget.Material3.BottomNavigationView">
+        <item name="itemIconTint">@color/blue_primary</item>
+        <item name="itemTextColor">@color/blue_primary</item>
+        <item name="backgroundColor">@color/white</item>
+    </style>
+
+    <style name="Widget.BottomNavigationView.Dark" parent="Widget.Material3.BottomNavigationView">
+        <item name="itemIconTint">@color/blue_secondary</item>
+        <item name="itemTextColor">@color/blue_secondary</item>
+        <item name="backgroundColor">@color/black</item>
+    </style>
+
+    <style name="Widget.BottomNavigationView.DayNight" parent="Widget.Material3.BottomNavigationView">
+        <item name="itemIconTint">@color/blue_primary</item>
+        <item name="itemTextColor">@color/blue_primary</item>
+        <item name="backgroundColor">@color/blue_primary_variant</item>
+    </style>
+</resources>
