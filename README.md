@@ -55,7 +55,7 @@ Single is a chat application that enables users to connect, send and accept frie
 1. Clone the repository:
 
     ```bash
-    git clone https://github.com/yourusername/single-app.git
+    git clone https://github.com/vivekupasani/single-app.git
     ```
 
 2. Open the project in Android Studio.
