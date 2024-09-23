@@ -66,7 +66,7 @@ Single is a chat application that enables users to connect, send and accept frie
 
 You can download the APK for the Single chat application from the following link:
 
-[Download Single APK]()
+[Download Single APK](https://www.dropbox.com/scl/fi/ssv8ou822cojowu6dv351/Single-Messenger.apk?rlkey=jqac5mesztzy3jgzpnl68n9zd&st=ju40fc6b&dl=0)
 
 ## How to Contribute
 
