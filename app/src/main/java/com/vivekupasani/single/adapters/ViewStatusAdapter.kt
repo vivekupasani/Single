@@ -19,7 +19,8 @@ class ViewStatusAdapter : RecyclerView.Adapter<ViewStatusAdapter.ViewHolder>() {
         RecyclerView.ViewHolder(binding.root)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val binding = EachUserViewStatusBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        val binding =
+            EachUserViewStatusBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return ViewHolder(binding)
     }
 
@@ -29,9 +30,11 @@ class ViewStatusAdapter : RecyclerView.Adapter<ViewStatusAdapter.ViewHolder>() {
         val currentStatus = statusList[position]
         holder.apply {
             Glide.with(holder.itemView).load(currentStatus.status).into(binding.status)
-            Glide.with(holder.itemView).load(currentStatus.profilePicURL).into(binding.profilePicture)
+            Glide.with(holder.itemView).load(currentStatus.profilePicURL)
+                .placeholder(R.drawable.profile_placeholder).into(binding.profilePicture)
             binding.username.text = currentStatus.userName            // Set other views as needed
-            binding.uploadTime.text= currentStatus.lastUpdated?.let { convertMillisToHourMinAMPM(it) } ?: "N/A"
+            binding.uploadTime.text =
+                currentStatus.lastUpdated?.let { convertMillisToHourMinAMPM(it) } ?: "N/A"
 
         }
     }

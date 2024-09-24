@@ -1,6 +1,4 @@
 package com.vivekupasani.single.ui.fragment
-
-import StatusViewModel
 import android.app.AlertDialog
 import android.content.Intent
 import android.net.Uri
@@ -20,6 +18,7 @@ import com.vivekupasani.single.adapters.StatusAdapter
 import com.vivekupasani.single.databinding.FragmentStatusBinding
 import com.vivekupasani.single.models.status
 import com.vivekupasani.single.ui.Activity.ViewStatus
+import com.vivekupasani.single.viewModels.StatusViewModel
 
 class Status : Fragment() {
 

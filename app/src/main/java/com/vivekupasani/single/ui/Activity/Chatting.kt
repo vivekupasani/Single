@@ -1,9 +1,12 @@
 package com.vivekupasani.single.ui.Activity
 
 import ChattingAdapter
+import ChattingViewModel
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.StrictMode
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
@@ -15,12 +18,30 @@ import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.karumi.dexter.Dexter
+import com.karumi.dexter.PermissionToken
+import com.karumi.dexter.listener.PermissionDeniedResponse
+import com.karumi.dexter.listener.PermissionGrantedResponse
+import com.karumi.dexter.listener.PermissionRequest
+import com.karumi.dexter.listener.single.PermissionListener
 import com.mikelau.shimmerrecyclerviewx.ShimmerRecyclerViewX
 import com.vivekupasani.single.R
 import com.vivekupasani.single.databinding.ActivityChattingBinding
+import com.vivekupasani.single.models.Users
 import com.vivekupasani.single.models.message
+import com.vivekupasani.single.notification.NotificationApi
+import com.vivekupasani.single.notification.models.Notification
+import com.vivekupasani.single.notification.models.NotificationData
 import com.vivekupasani.single.ui.fragment.Profile
-import com.vivekupasani.single.viewModels.ChattingViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 @Suppress("DEPRECATION")
 class Chatting : AppCompatActivity() {
@@ -33,7 +54,10 @@ class Chatting : AppCompatActivity() {
     private lateinit var recyclerView: ShimmerRecyclerViewX
     private lateinit var progressDialog: AlertDialog
 
+    private lateinit var senderName: String
+
     var username: String = ""
+    var token: String = ""
     var profilePic: String = ""
     var email: String = ""
     var about: String = ""
@@ -52,11 +76,14 @@ class Chatting : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         recyclerView = binding.chattingRV
 
+        // Call permission check here after the view is created
+        checkPermissions()
+
         // Initialize the progress dialog
         initializingDialog()
         // Getting data from the intent
-        fechDataFromIntent()
-        //onAttachmentClick handle method
+        fetchDataFromIntent()
+
         // Initialize ViewModel with sender and receiver IDs
         viewModel.initializeRooms(senderId, receiverUID)
 
@@ -77,7 +104,7 @@ class Chatting : AppCompatActivity() {
         }
 
         binding.btnSend.setOnClickListener {
-           onsendBtnClick()
+            onSendBtnClick()
         }
 
         // Setup RecyclerView
@@ -86,10 +113,31 @@ class Chatting : AppCompatActivity() {
         // Start observing LiveData from the ViewModel
         observeDisplayChatViewModels()
         observeSendChatViewModel()
+
+        // Ask user to accept notification permission
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Dexter.withContext(applicationContext)
+                .withPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                .withListener(object : PermissionListener {
+                    override fun onPermissionGranted(p0: PermissionGrantedResponse?) {}
+
+                    override fun onPermissionDenied(p0: PermissionDeniedResponse?) {}
+
+                    override fun onPermissionRationaleShouldBeShown(
+                        p0: PermissionRequest?,
+                        p1: PermissionToken?
+                    ) {
+                        p1?.continuePermissionRequest()
+                    }
+                }).check()
+        }
+
+        val policy = StrictMode.ThreadPolicy.Builder().permitAll().build()
+        StrictMode.setThreadPolicy(policy)
     }
 
     private fun gotoProfile() {
-        val intent = Intent(this,OtherUserProfile::class.java)
+        val intent = Intent(this, OtherUserProfile::class.java)
         intent.apply {
             putExtra(Profile.Name, username)
             putExtra(Profile.profilePic, profilePic)
@@ -100,41 +148,104 @@ class Chatting : AppCompatActivity() {
         startActivity(intent)
     }
 
-    private fun onsendBtnClick() {
-        // Getting the latest message input
+    private fun onSendBtnClick() {
         msg = binding.messageBox.text.toString()
-        // Check if both message and image are empty
+
         if (msg.isNotBlank() || imageUrl != null) {
-            // Show progress dialog when sending an image
             if (imageUrl != null) {
-                progressDialog.show() // Only show dialog for image
+                progressDialog.show()
             }
-            // Send the message or image
             viewModel.sendMessage(senderId, receiverUID, msg, imageUrl)
-            imageUrl = null // Clear image URL after sending the message
+            imageUrl = null
             binding.messageBox.text.clear()
+
+            sendNotification(msg, token)
         } else {
             Toast.makeText(this, "Cannot send an empty message", Toast.LENGTH_SHORT).show()
         }
     }
 
+    private fun checkPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Dexter.withContext(applicationContext)
+                .withPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                .withListener(object : PermissionListener {
+                    override fun onPermissionGranted(response: PermissionGrantedResponse?) {}
+                    override fun onPermissionDenied(response: PermissionDeniedResponse?) {}
+                    override fun onPermissionRationaleShouldBeShown(
+                        request: PermissionRequest?,
+                        token: PermissionToken?
+                    ) {
+                        token?.continuePermissionRequest()
+                    }
+                }).check()
+        }
+    }
 
-    private fun fechDataFromIntent() {
+    private fun sendNotification(msg : String,token : String) {
+        val currentUser = FirebaseAuth.getInstance().currentUser ?: return
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // Fetch sender name from Firestore
+                val document = FirebaseFirestore.getInstance().collection("Users")
+                    .document(currentUser.uid)
+                    .get()
+                    .await()  // Await to fetch data
+                val senderName = document.getString("userName") ?: "Unknown"
+
+                // Create notification data
+                val notificationData = NotificationData(
+                    token = token,
+                    data = hashMapOf(
+                        "title" to senderName,
+                        "body" to msg
+                    )
+                )
+                val notification = Notification(message = notificationData)
+
+                // Get access token
+                val accessToken = AccessToken.getAccessToken() ?: return@launch
+
+                // Send notification using the notification API
+                val notificationInterface = NotificationApi.create()
+                val response = notificationInterface.sendNotification(notification, "Bearer $accessToken")
+
+                // Handle response
+                withContext(Dispatchers.Main) {
+//                    if (response) {
+//                        Toast.makeText(this@Chatting, "Notification sent", Toast.LENGTH_SHORT).show()
+//                    } else {
+//                        Toast.makeText(this@Chatting, "Failed to send notification", Toast.LENGTH_SHORT).show()
+//                    }
+                }
+            } catch (e: Exception) {
+                // Handle any exceptions and show error message on the UI thread
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@Chatting, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+
+
+    private fun fetchDataFromIntent() {
         username = intent.getStringExtra(Profile.Name) ?: ""
+        token = intent.getStringExtra("token") ?: ""
         profilePic = intent.getStringExtra(Profile.profilePic) ?: ""
         receiverUID = intent.getStringExtra(Profile.userId) ?: ""
         about = intent.getStringExtra(Profile.About) ?: ""
         email = intent.getStringExtra(Profile.Email) ?: ""
         senderId = auth.currentUser?.uid ?: ""
 
-        // Setting the user's profile and name in the chat screen
         binding.username.text = username
-        Glide.with(this).load(profilePic).into(binding.userProfile)
+        Glide.with(this).load(profilePic)
+            .placeholder(R.drawable.profile_placeholder)
+            .into(binding.userProfile)
     }
 
     private fun setUpRecyclerView() {
         adapter = ChattingAdapter { imageUrl ->
-            // Start DisplayAttachment activity and pass the image URL
             val intent = Intent(this, DisplayAttachment::class.java)
             intent.putExtra("imageUrl", imageUrl)
             startActivity(intent)
@@ -148,51 +259,46 @@ class Chatting : AppCompatActivity() {
     }
 
     private fun observeSendChatViewModel() {
-        // Observing message sent status and errors
         viewModel.msgSend.observe(this, Observer {
-            binding.messageBox.text.clear() // Clear message box after successful send
+            binding.messageBox.text.clear()
             recyclerView.hideShimmerAdapter()
-            progressDialog.dismiss() // Hide progress dialog
+            progressDialog.dismiss()
         })
 
         viewModel.error.observe(this, Observer {
-            Toast.makeText(this, it, Toast.LENGTH_SHORT).show() // Display errors
+            Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
             recyclerView.hideShimmerAdapter()
-            progressDialog.dismiss() // Hide progress dialog
+            progressDialog.dismiss()
         })
     }
 
     private fun observeDisplayChatViewModels() {
-        // Observing message list updates
         viewModel.messageList.observe(this, Observer { messages ->
             if (messages.isNullOrEmpty()) {
-                // Show empty chat view if there are no messages
                 binding.emptyList.visibility = View.VISIBLE
                 recyclerView.visibility = View.GONE
             } else {
-                // Show the chat and hide the empty chat view if there are messages
                 binding.emptyList.visibility = View.GONE
                 recyclerView.visibility = View.VISIBLE
-                adapter.updateList(messages as ArrayList<message>) // Update RecyclerView with new messages
+                adapter.updateList(messages as ArrayList<message>)
             }
             recyclerView.hideShimmerAdapter()
         })
 
         viewModel.error.observe(this, Observer {
-            Toast.makeText(this, it, Toast.LENGTH_SHORT).show() // Display errors
+            Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
             recyclerView.hideShimmerAdapter()
         })
     }
-
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == 45 && resultCode == RESULT_OK && data != null) {
             imageUrl = data.data
-            // Show progress dialog when sending the image
             progressDialog.show()
             viewModel.sendMessage(senderId, receiverUID, msg, imageUrl)
-            imageUrl = null // Clear image URL after sending the message
+            sendNotification("Sent a photo", token)
+            imageUrl = null
         }
     }
 
@@ -203,11 +309,11 @@ class Chatting : AppCompatActivity() {
     }
 
     private fun initializingDialog() {
-        // Initialize the progress dialog
-        progressDialog = AlertDialog.Builder(this)
-            .setView(LayoutInflater.from(this).inflate(R.layout.dialog_sending_attachment, null))
-            .setCancelable(false)
-            .create()
-        progressDialog.window!!.setBackgroundDrawableResource(R.drawable.dialouge_box_background)
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_sending_attachment, null)
+        val builder = AlertDialog.Builder(this).apply {
+            setView(dialogView)
+            setCancelable(false)
+        }
+        progressDialog = builder.create()
     }
 }

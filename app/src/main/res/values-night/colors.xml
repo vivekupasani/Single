@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="blue_primary">#3c5fc3</color>
-    <color name="blue_primary_variant">#1565C0</color>
-    <color name="blue_secondary">#03A9F4</color>
-    <color name="blue_secondary_variant">#0288D1</color>
-    <color name="white">#000000</color>
-    <color name="black">#FFFFFF</color>
-    <color name="chatBackground">#0E0E0E</color>
-    <color name="Background">#000000</color>
-    <color name="shimmerColor">#BDBDBD</color>
+    <color name="blue_primary">#2e4a94</color>
+    <color name="blue_primary_variant">#0f4375</color>
+    <color name="blue_secondary">#0280bb</color>
+    <color name="blue_secondary_variant">#026796</color>
+    <color name="white">#121212</color>
+    <color name="black">#E0E0E0</color>
+    <color name="chatBackground">#303030</color>
+    <color name="Background">#121212</color>
+    <color name="shimmerColor">#424242</color> <!-- Adjusted for dark mode -->
 </resources>

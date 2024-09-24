@@ -1,9 +1,11 @@
+package com.vivekupasani.single.viewModels
+
 import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import com.google.android.gms.tasks.Task
+import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.firestore.FirebaseFirestore
@@ -11,6 +13,10 @@ import com.google.firebase.firestore.toObject
 import com.google.firebase.storage.FirebaseStorage
 import com.vivekupasani.single.models.Users
 import com.vivekupasani.single.models.status
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 
 class StatusViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -33,7 +39,7 @@ class StatusViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         displayStatus()
-        cleanupExpiredStatuses() // Automatically clean up expired statuses when viewModel initializes
+        cleanupExpiredStatuses()
     }
 
     fun uploadStatus(image: Uri) {
@@ -41,60 +47,52 @@ class StatusViewModel(application: Application) : AndroidViewModel(application) 
             _error.value = "User not logged in"
             return
         }
-        firestore.collection("Users")
-            .document(auth.currentUser!!.uid)
-            .get()
-            .addOnSuccessListener { documentSnapshot ->
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val documentSnapshot = firestore.collection("Users")
+                    .document(currentUserId)
+                    .get().await()
+
                 val user = documentSnapshot.toObject(Users::class.java)
                 currentUserName = user?.userName ?: ""
                 currentProfilePic = user?.profilePicURL ?: ""
 
                 val storageRef = storage.getReference("Status")
                     .child("$currentUserId${System.currentTimeMillis()}.jpg")
-                storageRef.putFile(image)
-                    .addOnSuccessListener {
-                        storageRef.downloadUrl
-                            .addOnSuccessListener { uri ->
-                                val status = status(
-                                    currentUserName,
-                                    currentProfilePic,
-                                    auth.currentUser!!.uid,
-                                    uri.toString(),
-                                    System.currentTimeMillis() // Save the current time as upload time
-                                )
+                storageRef.putFile(image).await()
 
-                                val userDetails = hashMapOf(
-                                    "name" to currentUserName,
-                                    "profile" to currentProfilePic,
-                                    "userId" to currentUserId,
-                                    "lastUpdated" to System.currentTimeMillis()
-                                )
+                val uri = storageRef.downloadUrl.await()
+                val status = status(
+                    currentUserName,
+                    currentProfilePic,
+                    currentUserId,
+                    uri.toString(),
+                    System.currentTimeMillis()
+                )
 
-                                database.getReference().child("Status")
-                                    .child(currentUserId)
-                                    .updateChildren(userDetails as Map<String, Any>)
+                val userDetails = hashMapOf(
+                    "name" to currentUserName,
+                    "profile" to currentProfilePic,
+                    "userId" to currentUserId,
+                    "lastUpdated" to System.currentTimeMillis()
+                )
 
-                                database.getReference().child("Status")
-                                    .child(currentUserId)
-                                    .child("Statuses")
-                                    .push()
-                                    .setValue(status)
-                                    .addOnSuccessListener {
-                                        _uploaded.value = true
-                                    }
-                            }
-                            .addOnFailureListener { e ->
-                                _error.value = "Failed to get download URL: ${e.message}"
-                            }
-                    }
-                    .addOnFailureListener { e ->
-                        _error.value = "Failed to upload status image: ${e.message}"
-                    }
+                database.getReference("Status")
+                    .child(currentUserId)
+                    .updateChildren(userDetails as Map<String, Any>).await()
 
+                database.getReference("Status")
+                    .child(currentUserId)
+                    .child("Statuses")
+                    .push()
+                    .setValue(status).await()
+
+                _uploaded.postValue(true)
+            } catch (e: Exception) {
+                _error.postValue("Error uploading status: ${e.message}")
             }
-            .addOnFailureListener { e ->
-                _error.value = "Failed to fetch user details: ${e.message}"
-            }
+        }
     }
 
     fun displayStatus() {
@@ -103,54 +101,47 @@ class StatusViewModel(application: Application) : AndroidViewModel(application) 
             return
         }
 
-        firestore.collection("Users")
-            .document(currentUserId)
-            .get()
-            .addOnSuccessListener { documentSnapshot ->
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val documentSnapshot = firestore.collection("Users")
+                    .document(currentUserId)
+                    .get().await()
+
                 val user = documentSnapshot.toObject<Users>()
                 val friendsList = user?.friends ?: emptyList()
 
                 val allStatuses = mutableListOf<status>()
-                val statusFetchTasks = mutableListOf<Task<status>>()
 
-                // Fetch statuses for all friends and the authenticated user from Realtime Database
-                database.getReference("Status").get()
-                    .addOnSuccessListener { dataSnapshot ->
-                        for (snapshot in dataSnapshot.children) {
-                            val userId = snapshot.key
-                            val statusesSnapshot = snapshot.child("Statuses")
+                val dataSnapshot = database.getReference("Status").get().await()
+                for (snapshot in dataSnapshot.children) {
+                    val userId = snapshot.key
+                    val statusesSnapshot = snapshot.child("Statuses")
 
-                            // Check if it's the authenticated user's own statuses or a friend's statuses
-                            if (userId == currentUserId || userId in friendsList) {
-                                val latestStatusSnapshot = statusesSnapshot.children.firstOrNull()
-                                latestStatusSnapshot?.let {
-                                    val userStatus = it.getValue(status::class.java)
-                                    userStatus?.let { statusObj ->
-                                        allStatuses.add(statusObj)
-                                    }
-                                }
+                    if (userId == currentUserId || userId in friendsList) {
+                        val latestStatusSnapshot = statusesSnapshot.children.firstOrNull()
+                        latestStatusSnapshot?.let {
+                            val userStatus = it.getValue(status::class.java)
+                            userStatus?.let { statusObj ->
+                                allStatuses.add(statusObj)
                             }
                         }
+                    }
+                }
 
-                        _statusList.value = allStatuses
-                    }
-                    .addOnFailureListener { e ->
-                        _error.value = "Failed to fetch statuses: ${e.message}"
-                    }
+                _statusList.postValue(allStatuses)
+            } catch (e: Exception) {
+                _error.postValue("Failed to fetch statuses: ${e.message}")
             }
-            .addOnFailureListener { e ->
-                _error.value = "Failed to fetch user details: ${e.message}"
-            }
+        }
     }
-
 
     fun cleanupExpiredStatuses() {
         val currentTime = System.currentTimeMillis()
         val expirationTime = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
 
-        database.getReference("Status")
-            .get()
-            .addOnSuccessListener { dataSnapshot ->
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val dataSnapshot = database.getReference("Status").get().await()
                 for (snapshot in dataSnapshot.children) {
                     val statusesSnapshot = snapshot.child("Statuses")
 
@@ -158,15 +149,14 @@ class StatusViewModel(application: Application) : AndroidViewModel(application) 
                         val statusObj = statusSnapshot.getValue(status::class.java)
                         statusObj?.let {
                             if (currentTime - it.lastUpdated > expirationTime) {
-                                // Delete the expired status
-                                statusSnapshot.ref.removeValue()
+                                statusSnapshot.ref.removeValue().await()
                             }
                         }
                     }
                 }
+            } catch (e: Exception) {
+                _error.postValue("Failed to clean up statuses: ${e.message}")
             }
-            .addOnFailureListener { e ->
-                _error.value = "Failed to clean up statuses: ${e.message}"
-            }
+        }
     }
 }

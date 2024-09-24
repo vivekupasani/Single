@@ -5,6 +5,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.vivekupasani.single.R
 import com.vivekupasani.single.databinding.EachUserInAddToChatsBinding
 import com.vivekupasani.single.models.Users
 
@@ -36,7 +37,9 @@ class NotificationAdapter(var userList: ArrayList<Users>) :
             binding.titleforBtn.text = "Accepted"
         }
         holder.apply {
-            Glide.with(itemView).load(currentUser.profilePicURL).into(binding.profile)
+            Glide.with(itemView).load(currentUser.profilePicURL)
+                .placeholder(R.drawable.profile_placeholder)
+                .into(binding.profile)
             binding.fullname.text = currentUser.userName
         }
 

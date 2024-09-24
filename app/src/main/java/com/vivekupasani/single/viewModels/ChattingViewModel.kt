@@ -1,23 +1,22 @@
-package com.vivekupasani.single.viewModels
-
 import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
 import com.google.firebase.storage.FirebaseStorage
 import com.vivekupasani.single.models.message
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class ChattingViewModel(application: Application) : AndroidViewModel(application) {
 
     private var firebase: FirebaseDatabase = FirebaseDatabase.getInstance()
-    private var storage : FirebaseStorage = FirebaseStorage.getInstance()
-    private var auth : FirebaseAuth = FirebaseAuth.getInstance()
+    private var storage: FirebaseStorage = FirebaseStorage.getInstance()
+    private var auth: FirebaseAuth = FirebaseAuth.getInstance()
 
     lateinit var senderRoom: String
     lateinit var receiverRoom: String
@@ -38,78 +37,75 @@ class ChattingViewModel(application: Application) : AndroidViewModel(application
     }
 
     private fun displayChats() {
-        firebase.getReference("Chats")
-            .child(senderRoom)
-            .child("Messages")
-            .addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val messages = mutableListOf<message>()
-                    for (messageSnapshot in snapshot.children) {
-                        val messageItem = messageSnapshot.getValue(message::class.java)
-                        messageItem?.let {
-                            messages.add(it)
-                        }
-                    }
-                    _messageList.postValue(messages)
-                }
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val messages = mutableListOf<message>()
+                val snapshot = firebase.getReference("Chats")
+                    .child(senderRoom)
+                    .child("Messages")
+                    .get().await()
 
-                override fun onCancelled(error: DatabaseError) {
-                    _error.postValue("Error fetching messages: ${error.message}")
+                for (messageSnapshot in snapshot.children) {
+                    val messageItem = messageSnapshot.getValue(message::class.java)
+                    messageItem?.let {
+                        messages.add(it)
+                    }
                 }
-            })
+                _messageList.postValue(messages)
+            } catch (e: Exception) {
+                _error.postValue("Error fetching messages: ${e.message}")
+            }
+        }
     }
 
     fun sendMessage(senderId: String, receiverId: String, messageText: String, imageUri: Uri?) {
         senderRoom = senderId + receiverId
         receiverRoom = receiverId + senderId
-        val currentUserId = auth.currentUser!!.uid
 
-        if (imageUri != null) {
-            // Upload the image to Firebase Storage
-            val storageRef = storage.getReference("Attachments")
-                .child("$currentUserId-${System.currentTimeMillis()}.jpg")
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val currentUserId = auth.currentUser!!.uid
 
-            storageRef.putFile(imageUri)
-                .addOnSuccessListener { taskSnapshot ->
-                    storageRef.downloadUrl.addOnSuccessListener { uri ->
-                        val imageUrl = uri.toString()
-                        // After uploading the image, send the message with the image URL
-                        sendMessageWithImage(senderId, receiverId, messageText, imageUrl)
-                    }
+                if (imageUri != null) {
+                    val storageRef = storage.getReference("Attachments")
+                        .child("$currentUserId-${System.currentTimeMillis()}.jpg")
+
+                    storageRef.putFile(imageUri).await()
+                    val imageUrl = storageRef.downloadUrl.await().toString()
+                    sendMessageToFirebase(senderId, receiverId, messageText, imageUrl)
+                } else {
+                    sendMessageToFirebase(senderId, receiverId, messageText, "")
                 }
-                .addOnFailureListener {
-                    _error.postValue("Error uploading image: ${it.message}")
-                }
-        } else {
-            // If no image, just send the message
-            sendMessageWithImage(senderId, receiverId, messageText, "")
+            } catch (e: Exception) {
+                _error.postValue("Error sending message: ${e.message}")
+            }
         }
     }
 
-    private fun sendMessageWithImage(senderId: String, receiverId: String, messageText: String, imageUrl: String?) {
-        val messageModel = message(messageText, senderId, imageUrl!!, System.currentTimeMillis())
+    private suspend fun sendMessageToFirebase(senderId: String, receiverId: String, messageText: String, imageUrl: String) {
+        val messageModel = message(messageText, senderId, imageUrl, System.currentTimeMillis())
 
-        firebase.getReference("Chats")
-            .child(senderRoom)
-            .child("Messages")
-            .push()
-            .setValue(messageModel)
-            .addOnSuccessListener {
-                firebase.getReference("Chats")
-                    .child(receiverRoom)
-                    .child("Messages")
-                    .push()
-                    .setValue(messageModel)
-                    .addOnSuccessListener {
-                        _msgSend.value = true
-                    }
-                    .addOnFailureListener {
-                        _error.postValue("Error sending message to receiver: ${it.message}")
-                    }
-            }
-            .addOnFailureListener {
-                _error.postValue("Error sending message to sender: ${it.message}")
-            }
+        try {
+            firebase.getReference("Chats")
+                .child(senderRoom)
+                .child("Messages")
+                .push()
+                .setValue(messageModel).await()
+
+            firebase.getReference("Chats")
+                .child(receiverRoom)
+                .child("Messages")
+                .push()
+                .setValue(messageModel).await()
+
+            // Update the message list immediately
+            val currentMessages = _messageList.value?.toMutableList() ?: mutableListOf()
+            currentMessages.add(messageModel)
+            _messageList.postValue(currentMessages)
+
+            _msgSend.postValue(true)
+        } catch (e: Exception) {
+            _error.postValue("Error sending message: ${e.message}")
+        }
     }
-
 }

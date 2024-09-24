@@ -4,18 +4,20 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.storage.FirebaseStorage
-import com.vivekupasani.single.models.Users
 import com.vivekupasani.single.models.status
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.tasks.await
 
 class ViewStatusViewModel(application: Application) : AndroidViewModel(application) {
 
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
-    private val storage: FirebaseStorage = FirebaseStorage.getInstance()
     private val database: FirebaseDatabase = FirebaseDatabase.getInstance()
 
     private val _statusList = MutableLiveData<List<status>>()
@@ -25,11 +27,13 @@ class ViewStatusViewModel(application: Application) : AndroidViewModel(applicati
     val error: LiveData<String> get() = _error
 
     fun showAllStatus(userId: String) {
-        database.getReference("Status")
-            .child(userId)
-            .child("Statuses")
-            .get()
-            .addOnSuccessListener { datasnap ->
+        viewModelScope.launch {
+            try {
+                val datasnap = database.getReference("Status")
+                    .child(userId)
+                    .child("Statuses")
+                    .get().await()
+
                 val statuses = mutableListOf<status>()
 
                 if (datasnap.exists()) {
@@ -41,10 +45,9 @@ class ViewStatusViewModel(application: Application) : AndroidViewModel(applicati
                 } else {
                     _statusList.postValue(emptyList()) // If no data, post an empty list
                 }
-            }
-            .addOnFailureListener { exception ->
+            } catch (exception: Exception) {
                 _error.postValue("Failed to load statuses: ${exception.message}") // Post error message
             }
+        }
     }
-
 }

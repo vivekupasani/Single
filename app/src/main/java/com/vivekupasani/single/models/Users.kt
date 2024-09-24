@@ -1,6 +1,7 @@
 package com.vivekupasani.single.models
 
 data class Users(
+
     val userId: String = "",
     val email: String = "",
     val password: String = "",
@@ -9,6 +10,7 @@ data class Users(
     val userName: String? = null,
     val profilePicURL: String? = null,
     val lastMessage: String? = null,
-    val friends: MutableList<String> = mutableListOf(),
-    val friendRequests: List<Map<String, Any>> = emptyList()
+    val friends: List<String> = emptyList(),
+    val friendRequests: List<Map<String, Any>> = emptyList(),
+    val token : String? = null
 )

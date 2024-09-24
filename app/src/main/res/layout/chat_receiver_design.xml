@@ -4,10 +4,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="16dp"
-    android:layout_marginEnd="16dp"
-    android:layout_marginTop="8dp"
-    android:layout_marginBottom="8dp">
+    android:layout_marginStart="8dp"
+    android:layout_marginEnd="8dp"
+    android:layout_marginBottom="4dp">
 
     <androidx.cardview.widget.CardView
         android:layout_width="wrap_content"
@@ -28,8 +27,8 @@
 
             <ImageView
                 android:id="@+id/imageMessage"
-                android:layout_width="200dp"
-                android:layout_height="120dp"
+                android:layout_width="220dp"
+                android:layout_height="140dp"
                 android:scaleType="centerCrop"
                 android:visibility="gone"
                 app:layout_constraintBottom_toBottomOf="parent"
@@ -51,12 +50,9 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:maxWidth="300dp"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:paddingBottom="8dp"
                     android:text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus luctus urna sed urna ultricies ac tempor dui sagittis. In condimentum facilisis porta. Sed nec diam eu diam mattis viverra. Nulla fringilla, orci ac euismod semper, magna diam porttitor mauris, quis sollicitudin sapien justo."
                     android:textColor="@color/black"
-                    android:textSize="16sp"
+                    android:textSize="18sp"
                     android:visibility="visible" />
             </LinearLayout>
 

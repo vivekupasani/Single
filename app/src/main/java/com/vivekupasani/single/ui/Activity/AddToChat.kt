@@ -1,5 +1,6 @@
 package com.vivekupasani.single.ui.Activity
 
+import AddToChatViewModel
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -10,12 +11,22 @@ import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.mikelau.shimmerrecyclerviewx.ShimmerRecyclerViewX
 import com.vivekupasani.single.adapters.AddToChatAdapter
 import com.vivekupasani.single.databinding.ActivityAddToChatBinding
 import com.vivekupasani.single.models.Users
-import com.vivekupasani.single.viewModels.AddToChatViewModel
+import com.vivekupasani.single.notification.NotificationApi
+import com.vivekupasani.single.notification.models.Notification
+import com.vivekupasani.single.notification.models.NotificationData
 import com.vivekupasani.single.viewModels.Friends
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class AddToChat : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
 
@@ -44,10 +55,95 @@ class AddToChat : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
         recyclerView.showShimmerAdapter()
         adapter.onRequestBtnClick = { selectedUser ->
             friendViewModel.sendRequest(selectedUser)
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    // Perform your network operation here
+                    sendNotification(selectedUser) // Example network call
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
         }
 
         onBackBtnClick()
     }
+
+    private fun sendNotification(selectedUser: Users) {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        if (currentUser != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    // Get the sender name from Firestore
+                    val document = FirebaseFirestore.getInstance().collection("Users")
+                        .document(currentUser.uid)
+                        .get()
+                        .await() // Wait for the result
+
+                    val senderName = document.getString("userName") ?: "Unknown"
+
+                    // Create notification data
+                    val notification = Notification(
+                        message = NotificationData(
+                            token = selectedUser.token,
+                            data = hashMapOf(
+                                "title" to senderName,
+                                "body" to "sent you a friend request"
+                            )
+                        )
+                    )
+
+                    // Get access token
+                    val accessToken = AccessToken.getAccessToken()
+
+                    if (accessToken != null) {
+                        // Send notification using suspend function
+                        val notificationInterface = NotificationApi.create()
+                        val response = notificationInterface.sendNotification(
+                            notification, "Bearer $accessToken"
+                        )
+
+                        // Handle the response
+                        if (response != null) {
+                            launch(Dispatchers.Main) {
+//                                Toast.makeText(
+//                                    this@AddToChat,
+//                                    "Notification sent",
+//                                    Toast.LENGTH_SHORT
+//                                ).show()
+                            }
+                        } else {
+                            launch(Dispatchers.Main) {
+//                                Toast.makeText(
+//                                    this@AddToChat,
+//                                    "Failed to send notification",
+//                                    Toast.LENGTH_SHORT
+//                                ).show()
+                            }
+                        }
+                    } else {
+                        launch(Dispatchers.Main) {
+//                            Toast.makeText(
+//                                this@AddToChat,
+//                                "Failed to get access token",
+//                                Toast.LENGTH_SHORT
+//                            ).show()
+                        }
+                    }
+                } catch (e: Exception) {
+                    launch(Dispatchers.Main) {
+//                        Toast.makeText(
+//                            this@AddToChat,
+//                            "Error: ${e.message}",
+//                            Toast.LENGTH_SHORT
+//                        ).show()
+                    }
+                }
+            }
+        } else {
+            Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show()
+        }
+    }
+
 
     private fun observeFriendViewModel() {
         friendViewModel.sendRequest.observe(this, Observer {
@@ -92,7 +188,7 @@ class AddToChat : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
     }
 
     override fun onRefresh() {
-        viewModel.getUsers()
+        viewModel.getUsers() // This should trigger the LiveData update and refresh the data
         recyclerView.showShimmerAdapter()
         refreshLayout.isRefreshing = false
     }

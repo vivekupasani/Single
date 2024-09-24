@@ -73,6 +73,7 @@ class Profile : Fragment() {
                 isLoding(false)
                 Glide.with(this)
                     .load(user.profilePicURL)
+                    .placeholder(R.drawable.profile_placeholder)
                     .into(binding.profile)
                 binding.emailAddress.setText(user.email)
                 binding.fullName.setText(user.userName)

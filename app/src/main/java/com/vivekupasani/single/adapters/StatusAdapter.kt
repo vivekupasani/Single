@@ -18,14 +18,14 @@ class StatusAdapter : RecyclerView.Adapter<StatusAdapter.ViewHolder>() {
             // Load the profile picture
             Glide.with(itemView.context)
                 .load(currentStatus.profilePicURL)
-                .placeholder(R.drawable.profile) // Optional placeholder
+                .placeholder(R.drawable.profile)
                 .into(binding.profileImage)
 
             // Load the status image (assuming it's a URL)
             if (currentStatus.status.isNotEmpty()) {
                 Glide.with(itemView.context)
                     .load(currentStatus.status)
-                    .placeholder(R.drawable.profile) // Optional placeholder
+                    .placeholder(R.drawable.profile_placeholder) // Optional placeholder
                     .into(binding.mainStatus)
             } else {
                 // Handle case where there is no status image

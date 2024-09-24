@@ -1,5 +1,6 @@
 package com.vivekupasani.single.ui.Activity.signup
 
+import Authentication
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -7,11 +8,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
 import com.vivekupasani.single.databinding.ActivityGetpasswordBinding
 import com.vivekupasani.single.ui.Activity.EditProfile
 import com.vivekupasani.single.ui.Activity.SignIn
 import com.vivekupasani.single.ui.fragment.Profile
-import com.vivekupasani.single.viewModels.Authentication
 
 class getPassword : AppCompatActivity() {
 
@@ -80,11 +84,16 @@ class getPassword : AppCompatActivity() {
             } else {
 
                 if (userEmail != null) {
-                    viewModel.signUpUser(userEmail, userPassword)
+                    viewModel.signUpUser(userEmail, userPassword,)
+
                 } else {
                     Toast.makeText(this, "Email not found", Toast.LENGTH_SHORT).show()
                 }
             }
         }
+    }
+
+    private fun setToken() {
+
     }
 }

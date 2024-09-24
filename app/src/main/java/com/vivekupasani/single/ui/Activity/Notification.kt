@@ -12,13 +12,26 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.mikelau.shimmerrecyclerviewx.ShimmerRecyclerViewX
 import com.vivekupasani.single.R
 import com.vivekupasani.single.adapters.NotificationAdapter
 import com.vivekupasani.single.databinding.ActivityNotificationBinding
 import com.vivekupasani.single.models.Users
+import com.vivekupasani.single.notification.NotificationApi
+import com.vivekupasani.single.notification.models.Notification
+import com.vivekupasani.single.notification.models.NotificationData
 import com.vivekupasani.single.viewModels.Friends
 import com.vivekupasani.single.viewModels.NotificationViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class Notification : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
 
@@ -81,9 +94,49 @@ class Notification : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
 
     private fun onAcceptFriendBtnClick() {
         adapter.onAcceptBtnClick = { user ->
+            sendNotification(user)
             viewModel.acceptRequest(user.userId)
         }
     }
+
+    private fun sendNotification(selectedUser: Users) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val document = FirebaseFirestore.getInstance()
+                    .collection("Users")
+                    .document(FirebaseAuth.getInstance().currentUser!!.uid)
+                    .get()
+                    .await() // Make sure you have the necessary import
+
+                val senderName = document.getString("userName") ?: "Unknown"
+                val notificationData = NotificationData(
+                    token = selectedUser.token,
+                    data = hashMapOf(
+                        "title" to senderName,
+                        "body" to "Accepted friend request"
+                    )
+                )
+                val notification = Notification(message = notificationData)
+
+                val accessToken = AccessToken.getAccessToken() ?: return@launch
+                // Call the sendNotification function, which should be a suspend function now
+                val response = NotificationApi.create().sendNotification(notification,"Bearer $accessToken")
+
+                withContext(Dispatchers.Main) {
+//                    if (response.isSuccessful) {
+//                        Toast.makeText(this@Notification, "Notification sent", Toast.LENGTH_SHORT).show()
+//                    } else {
+//                        Toast.makeText(this@Notification, "Failed to send notification", Toast.LENGTH_SHORT).show()
+//                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@Notification, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
 
     private fun observeFriendsViewModel() {
         viewModel.acceptedRequest.observe(this, Observer {

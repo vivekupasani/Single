@@ -65,7 +65,9 @@ class EditProfile : AppCompatActivity() {
         binding.fullName.setText(name)
         binding.about.setText(about)
         binding.emailAddress.setText(email)
-        Glide.with(this).load(profilePic).into(binding.profile)
+        Glide.with(this).load(profilePic)
+            .placeholder(R.drawable.profile_placeholder)
+            .into(binding.profile)
     }
 
     private fun onSaveBtnClick() {

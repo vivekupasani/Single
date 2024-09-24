@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.vivekupasani.single.R
 import com.vivekupasani.single.databinding.EachUserInChatsBinding
 import com.vivekupasani.single.models.Users
 import java.text.SimpleDateFormat
@@ -33,7 +34,7 @@ class ChatHomeAdapter(var userList: ArrayList<Users>) :
         val currentUser = userList[position]
 
         holder.apply {
-            Glide.with(itemView).load(currentUser.profilePicURL).into(binding.profile)
+            Glide.with(itemView).load(currentUser.profilePicURL).placeholder(R.drawable.profile_placeholder).into(binding.profile)
             binding.apply {
                 username.text = currentUser.userName
 

@@ -37,7 +37,9 @@ class OtherUserProfile : AppCompatActivity() {
     }
 
     private fun setOnProfile() {
-        Glide.with(this).load(profilePic).into(binding.profile)
+        Glide.with(this).load(profilePic)
+            .placeholder(R.drawable.profile_placeholder)
+            .into(binding.profile)
         binding.fullName.setText(username)
         binding.emailAddress.setText(email)
         binding.about.setText(about)

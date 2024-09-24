@@ -1,21 +1,27 @@
 package com.vivekupasani.single.ui.fragment
 
-import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
-import androidx.fragment.app.Fragment
+import android.os.StrictMode
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.TextView
 import android.widget.Toast
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.firebase.auth.FirebaseAuth
+import com.karumi.dexter.Dexter
+import com.karumi.dexter.PermissionToken
+import com.karumi.dexter.listener.PermissionDeniedResponse
+import com.karumi.dexter.listener.PermissionGrantedResponse
+import com.karumi.dexter.listener.PermissionRequest
+import com.karumi.dexter.listener.single.PermissionListener
 import com.mikelau.shimmerrecyclerviewx.ShimmerRecyclerViewX
 import com.vivekupasani.single.R
 import com.vivekupasani.single.adapters.ChatHomeAdapter
@@ -26,7 +32,6 @@ import com.vivekupasani.single.ui.Activity.Chatting
 import com.vivekupasani.single.ui.Activity.Notification
 import com.vivekupasani.single.ui.Activity.OnBoard
 import com.vivekupasani.single.viewModels.ChatsHomeViewModel
-
 
 class Chats : Fragment() {
 
@@ -42,7 +47,7 @@ class Chats : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        // Removed the permission check from onCreate
     }
 
     override fun onCreateView(
@@ -73,6 +78,8 @@ class Chats : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+
+
         binding.btnSignOut.setOnClickListener {
             onSignOutBtnClick()
         }
@@ -85,6 +92,8 @@ class Chats : Fragment() {
         onUserClick()
         recyclerViewX.showShimmerAdapter()
 
+
+
     }
 
     private fun onNotificationBtnClick() {
@@ -96,6 +105,7 @@ class Chats : Fragment() {
             val intent = Intent(requireContext(), Chatting::class.java)
             intent.apply {
                 putExtra(Profile.Name, user.userName)
+                putExtra("token", user.token)
                 putExtra(Profile.profilePic, user.profilePicURL)
                 putExtra(Profile.userId, user.userId)
                 putExtra(Profile.About, user.about)
@@ -109,11 +119,10 @@ class Chats : Fragment() {
         viewModel.userList.observe(viewLifecycleOwner, Observer { userList ->
             recyclerViewX.hideShimmerAdapter()
 
-            if (userList.isNullOrEmpty()){
+            if (userList.isNullOrEmpty()) {
                 binding.recyclerView.visibility = View.GONE
                 binding.emptyList.visibility = View.VISIBLE
-            }
-            else{
+            } else {
                 binding.recyclerView.visibility = View.VISIBLE
                 binding.emptyList.visibility = View.GONE
 
@@ -128,6 +137,8 @@ class Chats : Fragment() {
             recyclerViewX.showShimmerAdapter()
         })
     }
+
+
 
     private fun setuprecyclerView() {
         recyclerViewX = binding.recyclerView
@@ -160,7 +171,6 @@ class Chats : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-
     }
 
 }

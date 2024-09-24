@@ -1,21 +1,18 @@
 package com.vivekupasani.single.ui.Activity
 
+import Authentication
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Observer
 import com.google.firebase.auth.FirebaseAuth
 import com.vivekupasani.single.MainActivity
-import com.vivekupasani.single.R
 import com.vivekupasani.single.databinding.ActivitySigninBinding
 import com.vivekupasani.single.ui.Activity.signup.getEmail
-import com.vivekupasani.single.ui.Activity.signup.getPassword
-import com.vivekupasani.single.viewModels.Authentication
+
 
 class SignIn : AppCompatActivity() {
 
