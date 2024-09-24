@@ -18,18 +18,17 @@ class StatusAdapter : RecyclerView.Adapter<StatusAdapter.ViewHolder>() {
             // Load the profile picture
             Glide.with(itemView.context)
                 .load(currentStatus.profilePicURL)
-                .placeholder(R.drawable.profile)
+                .placeholder(R.drawable.profile_placeholder)
                 .into(binding.profileImage)
 
-            // Load the status image (assuming it's a URL)
-            if (currentStatus.status.isNotEmpty()) {
+            // Load the status image
+            if (!currentStatus.status.isNullOrEmpty()) {
                 Glide.with(itemView.context)
                     .load(currentStatus.status)
-                    .placeholder(R.drawable.profile_placeholder) // Optional placeholder
                     .into(binding.mainStatus)
             } else {
                 // Handle case where there is no status image
-                binding.mainStatus.setImageResource(R.drawable.profile) // Optional placeholder
+                binding.mainStatus.setImageResource(R.drawable.profile_placeholder) // Optional placeholder
             }
         }
     }
@@ -44,17 +43,19 @@ class StatusAdapter : RecyclerView.Adapter<StatusAdapter.ViewHolder>() {
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val currentStatus = statusList[position]
-        holder.bind(currentStatus)
+        if (position < statusList.size) {
+            val currentStatus = statusList[position]
+            holder.bind(currentStatus)
 
-        holder.itemView.setOnClickListener {
-            onStatusClick?.invoke(currentStatus)
+            holder.itemView.setOnClickListener {
+                onStatusClick?.invoke(currentStatus)
+            }
         }
     }
 
-    fun updateStatus(status: ArrayList<status>) {
+    fun updateStatus(status: List<status>) {
         statusList.clear()
-        statusList.addAll(status)
+        statusList.addAll(status.filterNotNull()) // Filter out any null statuses if applicable
         notifyDataSetChanged()
     }
 }

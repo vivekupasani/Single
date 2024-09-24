@@ -32,24 +32,24 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
         if (userId != null) {
             viewModelScope.launch(Dispatchers.IO) {
                 try {
+                    // Get the current user's document
                     val documentSnapshot = firestore.collection("Users").document(userId).get().await()
-                    val friendRequests = documentSnapshot.get("friendRequests") as? List<Map<String, Any>>
+                    // Extract the friend requests
+                    val friendRequests = documentSnapshot.get("friendRequests") as? List<String>
 
                     if (friendRequests != null && friendRequests.isNotEmpty()) {
                         val users = mutableListOf<Users>()
 
-                        for (request in friendRequests) {
-                            val friendId = request["fromUid"] as? String
-                            if (friendId != null) {
-                                val friendDoc = firestore.collection("Users").document(friendId).get().await()
-                                val user = friendDoc.toObject(Users::class.java)
-                                if (user != null) {
-                                    users.add(user)
-                                }
+                        // Fetch each friend request user document
+                        for (friendId in friendRequests) {
+                            val friendDoc = firestore.collection("Users").document(friendId).get().await()
+                            val user = friendDoc.toObject(Users::class.java)
+                            if (user != null) {
+                                users.add(user)
                             }
                         }
 
-                        _userList.postValue(users.toList()) // Update the user list on the main thread
+                        _userList.postValue(users) // Update the user list on the main thread
                     } else {
                         _errorMessage.postValue("No friend requests found.")
                     }

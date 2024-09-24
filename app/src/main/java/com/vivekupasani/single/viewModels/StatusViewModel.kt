@@ -2,6 +2,7 @@ package com.vivekupasani.single.viewModels
 
 import android.app.Application
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -16,7 +17,6 @@ import com.vivekupasani.single.models.status
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.withContext
 
 class StatusViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -24,9 +24,6 @@ class StatusViewModel(application: Application) : AndroidViewModel(application) 
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
     private val storage: FirebaseStorage = FirebaseStorage.getInstance()
     private val database: FirebaseDatabase = FirebaseDatabase.getInstance()
-
-    private lateinit var currentUserName: String
-    private lateinit var currentProfilePic: String
 
     private val _uploaded = MutableLiveData<Boolean>()
     val uploaded: LiveData<Boolean> get() = _uploaded
@@ -50,47 +47,31 @@ class StatusViewModel(application: Application) : AndroidViewModel(application) 
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val documentSnapshot = firestore.collection("Users")
-                    .document(currentUserId)
-                    .get().await()
-
+                val documentSnapshot = firestore.collection("Users").document(currentUserId).get().await()
                 val user = documentSnapshot.toObject(Users::class.java)
-                currentUserName = user?.userName ?: ""
-                currentProfilePic = user?.profilePicURL ?: ""
 
-                val storageRef = storage.getReference("Status")
-                    .child("$currentUserId${System.currentTimeMillis()}.jpg")
+                val currentUserName = user?.userName ?: "Unknown User"
+                val currentProfilePic = user?.profilePicURL ?: ""
+
+                val storageRef = storage.getReference("Status").child("$currentUserId${System.currentTimeMillis()}.jpg")
                 storageRef.putFile(image).await()
 
                 val uri = storageRef.downloadUrl.await()
-                val status = status(
-                    currentUserName,
-                    currentProfilePic,
-                    currentUserId,
-                    uri.toString(),
-                    System.currentTimeMillis()
-                )
+                val newStatus = status(currentUserName, currentProfilePic, currentUserId, uri.toString(), System.currentTimeMillis())
 
-                val userDetails = hashMapOf(
+                val userDetails = mapOf(
                     "name" to currentUserName,
                     "profile" to currentProfilePic,
                     "userId" to currentUserId,
                     "lastUpdated" to System.currentTimeMillis()
                 )
 
-                database.getReference("Status")
-                    .child(currentUserId)
-                    .updateChildren(userDetails as Map<String, Any>).await()
-
-                database.getReference("Status")
-                    .child(currentUserId)
-                    .child("Statuses")
-                    .push()
-                    .setValue(status).await()
+                database.getReference("Status").child(currentUserId).updateChildren(userDetails).await()
+                database.getReference("Status").child(currentUserId).child("Statuses").push().setValue(newStatus).await()
 
                 _uploaded.postValue(true)
             } catch (e: Exception) {
-                _error.postValue("Error uploading status: ${e.message}")
+                _error.postValue("Error uploading status: ${e.localizedMessage}")
             }
         }
     }
@@ -113,11 +94,10 @@ class StatusViewModel(application: Application) : AndroidViewModel(application) 
                 val allStatuses = mutableListOf<status>()
 
                 val dataSnapshot = database.getReference("Status").get().await()
-                for (snapshot in dataSnapshot.children) {
-                    val userId = snapshot.key
-                    val statusesSnapshot = snapshot.child("Statuses")
+                for (friendUserId in dataSnapshot.children) {
+                    val statusesSnapshot = friendUserId.child("Statuses")
 
-                    if (userId == currentUserId || userId in friendsList) {
+                    if (friendUserId.key == currentUserId || friendUserId.key in friendsList) {
                         val latestStatusSnapshot = statusesSnapshot.children.firstOrNull()
                         latestStatusSnapshot?.let {
                             val userStatus = it.getValue(status::class.java)
@@ -130,10 +110,13 @@ class StatusViewModel(application: Application) : AndroidViewModel(application) 
 
                 _statusList.postValue(allStatuses)
             } catch (e: Exception) {
-                _error.postValue("Failed to fetch statuses: ${e.message}")
+                Log.e("StatusViewModel", "Error fetching statuses: ${e.localizedMessage}")
+                _error.postValue("Error fetching statuses: ${e.localizedMessage}")
             }
         }
     }
+
+
 
     fun cleanupExpiredStatuses() {
         val currentTime = System.currentTimeMillis()
@@ -144,7 +127,6 @@ class StatusViewModel(application: Application) : AndroidViewModel(application) 
                 val dataSnapshot = database.getReference("Status").get().await()
                 for (snapshot in dataSnapshot.children) {
                     val statusesSnapshot = snapshot.child("Statuses")
-
                     for (statusSnapshot in statusesSnapshot.children) {
                         val statusObj = statusSnapshot.getValue(status::class.java)
                         statusObj?.let {
@@ -155,8 +137,9 @@ class StatusViewModel(application: Application) : AndroidViewModel(application) 
                     }
                 }
             } catch (e: Exception) {
-                _error.postValue("Failed to clean up statuses: ${e.message}")
+                _error.postValue("Failed to clean up statuses: ${e.localizedMessage}")
             }
         }
     }
 }
+
