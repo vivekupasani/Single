@@ -1,6 +1,4 @@
-Here's the updated documentation with the images displayed four per row:
 
----
 
 # Single - Chat Application
 
